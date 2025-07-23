@@ -33,13 +33,13 @@ import os
 # In[ ]:
 
 
-#set Working Directories 
+#set Working Directories (redacted for privacy)
 
-data_dir = 'C:\\Users\\18045\\Documents\\Python\\OSU_Project\\Data'
-data_pop_dir = 'C:\\Users\\18045\\Documents\\Python\\OSU_Project\\Data\\population'
-data_econ_dir = 'C:\\Users\\18045\\Documents\\Python\\OSU_Project\\Data\\economic_indicators'
+data_dir = 'C:'
+data_pop_dir = 'C:'
+data_econ_dir = 'C:'
 
-output_dir = 'C:\\Users\\18045\\Documents\\Python\\OSU_Project\\output'
+output_dir = 'C:'
 
 
 # The first step is to download government verified data for Ohio's FIPS codes. These codes will be used to call the county-level economic series at the Bureau of Labor Statistics (BLS). Make sure to use Federal Government downloads. Do not open the file or modify it. If that occurs, then redownload the file to ensure data integrity. 
