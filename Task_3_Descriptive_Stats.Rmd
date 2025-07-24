@@ -6,7 +6,7 @@ output:
   html_document:
     code_folding: hide
     number_sections: false
-    toc: yes
+    toc: TRUE
     toc_depth: 3
     toc_float: yes
 ---
@@ -26,8 +26,10 @@ while (sink.number() > 0) sink(NULL)
 ```{r include=FALSE}
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 options(scientific=999, digits = 3) 
+#rmarkdown::render('Task_3_Descriptive_Stats.Rmd') 
 ```
 
+The code chunk below loads the 2 apprentice project datasets, and loads necessary libraries for R Markdown.
 ```{R}
 #install.packages('devtools')
 #devtools::install_github("physicsland/ezids")
@@ -51,7 +53,8 @@ appr_prog_df <- read.csv(file.path(data_wd, 'oh_appr_program.csv'))
 
 ```
 
-  
+This code chunk applies demographic levels for factor variables such as Race, Gender, Ethnicity, Veteran Status, Disabled Status, and Education level. 
+
 ```{r , message=FALSE, warning=FALSE}
 #applying dictionary terms to demographic information
 
@@ -91,6 +94,11 @@ appr_person_df <- appr_person_df %>%
 
 ```
 
+This code chunk caps the Age at Start of apprenticeship to an age range inclusive from age 14 to age 90. This was performed to accurately record respondents who may enter the workforce as a teenager. 
+The lower start age floor of 14 was included to identify participants who sought the apprenticeship program before legal working age or representative of other arrangements such as but not limited to emancipation. 
+The upper start age cap of 90 was included to account for participants who sought the apprenticeship program later in life. 
+start ages reported outside of this range were flagged and not included in this study because they were low in count, and have an increased chance they were erronous.
+
 ```{r , message=FALSE, warning=FALSE}
 #Binning start Ages and flagging erronous ages
 appr_person_df$age_flag <- appr_person_df$AgeAtStart >= 14 & appr_person_df$AgeAtStart <= 90
@@ -107,9 +115,15 @@ appr_person_df$age_bin <- factor(appr_person_df$age_bin, levels = c("14–19", "
 
 ```
 
+Start and exit wages in the apprentice program were cleaned and binned into a range from below $7.25/hour to over $40/hour.
+The lower wage bound represents tip workers and other low-wage earners below the federal minimum wage of $7.25/hour.
+The upper wage bound represents the fewer high-wage earners and caps outliers.
+Wage bins were consistent for start and exit wages for consistency. Wage bin are incremented by ~$5 intervals from below $7.25 up to $20/hour, then by ~$10 intervals from $20/hour to a cap of $40+/hour.
+Besides protecting individual wages (which may invovle a privacy concern) the wage bins highlight economic utility differences. 
+For example, the difference in utility between earning $15/hour and $30/hour is meaningful even when accounting for other variables like the number of dependents.
 
 ```{r , message=FALSE, warning=FALSE}
-#Binning starting wages 
+#Binning start wages 
 
 appr_person_df$st_wage_flag <- appr_person_df$startingWage >= 7.25 & appr_person_df$startingWage <= 40
 
@@ -118,12 +132,12 @@ appr_person_df$st_wage_clean <- ifelse(appr_person_df$st_wage_flag, appr_person_
 appr_person_df$st_wage_bin <- cut(appr_person_df$startingWage, 
                               breaks = c(-Inf, 7.25, 15, 20, 30, 40, Inf), 
                               right = FALSE, 
-                              labels = c("Below 7.25", "7.25–14", "15–19", "20–29", "30–39", "40+"))                      
+                              labels = c("Below $7.25", "$7.25–$14", "$15–$19", "$20–$29", "$30–$39", "$40+"))                      
 
-appr_person_df$st_wage_bin <- factor(appr_person_df$st_wage_bin, levels = c("Below 7.25", "7.25–14", "15–19", "20–29", "30–39", "40+"),
+appr_person_df$st_wage_bin <- factor(appr_person_df$st_wage_bin, levels = c("Below $7.25", "$7.25–$14", "$15–$19", "$20–$29", "$30–$39", "$40+"),
   ordered = TRUE)
 
-#Binning ending wages 
+#Binning exit wages 
 
 appr_person_df$end_wage_flag <- appr_person_df$exitWage >= 7.25 & appr_person_df$exitWage <= 40
 
@@ -132,15 +146,20 @@ appr_person_df$end_wage_clean <- ifelse(appr_person_df$end_wage_flag, appr_perso
 appr_person_df$end_wage_bin <- cut(appr_person_df$exitWage,
                                breaks = c(-Inf, 7.25, 15, 20, 30, 40, Inf),
                                right = FALSE,
-                               labels = c("Below 7.25", "7.25–14", "15–19", "20–29", "30–39", "40+"))
+                               labels = c("Below $7.25", "$7.25–$14", "$15–$19", "$20–$29", "$30–$39", "$40+"))
 
-appr_person_df$end_wage_bin <- factor(appr_person_df$end_wage_bin, levels = c("Below 7.25", "7.25–14", "15–19", "20–29", "30–39", "40+"),
+appr_person_df$end_wage_bin <- factor(appr_person_df$end_wage_bin, levels = c("Below $7.25", "$7.25–$14", "$15–$19", "$20–$29", "$30–$39", "$40+"),
   ordered = TRUE)
 
 ```
 
-Tables of apprentice participation demographics including Ethnicity, Veteran Status, Gender Status, Race, Disabled Status, Education, and Program Age Start Bins.
+Presented below are tables and plots of the demographic information of the apprentice participants which includes Ethnicity, Veteran Status, Gender, Race, Disabled Status, Education level, and Program Age Start Bins.
 
+**Ethnicity**
+
+66% of apprentice participants reported Not Hispanic ethnicity, 31% did not provide a response, and 3% reported Hispanic ethnicity. 
+This suggests that the apprentice program may need additional marketing towards Hispanics to enter the program. 
+Additionally self-reporting ethnicity may be tied to caution which could explain the larger share of the "Not Provided" response. 
 ```{r , message=FALSE, warning=FALSE}
 appr_person_df %>%
   count(Ethnicity) %>%
@@ -177,7 +196,9 @@ appr_person_df %>%
 
 ```
 
-Veteran Status
+**Veteran Status**
+
+85% of participants indicated they were not veterans, and 6% identified as veterans. This suggests that the apprentice program may need additional marketing towards veterans to enter the program.
 
 ```{r , message=FALSE, warning=FALSE}
 appr_person_df %>%
@@ -208,6 +229,11 @@ appr_person_df %>%
   kable(col.names = c("Veteran Status", "Count", "Percent"), caption = "Veteran Status Distribution") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
+
+**Gender**
+
+93% of participants indicated selection of the male gender, and 7% of participants indicated selection of the female gender. 
+The apprentice program seems to have a higher participation of males than females, which may be reinforced by the type of roles offered, and lack of support systems for female and other marginalized genders. 
 
 ```{r , message=FALSE, warning=FALSE}
 appr_person_df %>%
@@ -240,7 +266,9 @@ appr_person_df %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
-Race 
+**Race** 
+
+Around 79% of participants identified as white, 14% of participants identified as black or african-american, and ~6% total were a mix of blank or "do not wish to answer" responses.
 
 ```{r , message=FALSE, warning=FALSE}
 appr_person_df %>%
@@ -258,7 +286,7 @@ appr_person_df %>%
     x = "Race",
     y = "Count"
   ) +
-  scale_y_continuous(breaks = seq(0, 150000, by = 15000), 
+  scale_y_continuous(breaks = seq(0, 150000, by = 50000), 
   labels = scales::comma) +
   theme_minimal()
 ```
@@ -272,6 +300,12 @@ appr_person_df %>%
   kable(col.names = c("Race Status", "Count", "Percent"), caption = "Race Status Distribution") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
+
+**Disabled Status**
+
+85% of respondents selected "Not Provided" for their disabled status. Less than 0% indicated they identified as disabled. 
+This suggests that respondents view this metric on a very personal level to opt out of responding rather than indicate an affirmative or a negative response.
+This indicates that the participants may wish to keep this type of information private, or that there is a non-professional diagnosis that is wished to be expressed.
 
 ```{r , message=FALSE, warning=FALSE}
 appr_person_df %>%
@@ -305,7 +339,10 @@ appr_person_df %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
-Education
+**Education**
+
+85% of participants indicated that they completed High School or greater. Less than 3% indicated they obtained Post-secondary or technical training. 
+This suggests that the majority of participants 1). completed High School, 2). completed High School and enrolled, but did not obtain a post-secondary or technical training degree or certification. 
 
 ```{r , message=FALSE, warning=FALSE}
 appr_person_df %>%
@@ -323,7 +360,7 @@ appr_person_df %>%
     x = "Education Level",
     y = "Count"
   ) +
-  scale_y_continuous(breaks = seq(0, 150000, by = 15000), 
+  scale_y_continuous(breaks = seq(0, 150000, by = 50000), 
   labels = scales::comma) +
   theme_minimal() + 
   scale_fill_discrete(name = "Education Level")
@@ -339,7 +376,10 @@ appr_person_df %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
-Age Bins
+**Appentrice Age Start Bins**
+
+49% of participants identified between the ages of 20-29, and 25% of participants identified between the ages of 30-39. These age bins compose the majority of ages in the program.
+Ages were floored at age 14, and capped at age 90 to account for outliers
 
 ```{r , message=FALSE, warning=FALSE}
 appr_person_df %>%
@@ -350,7 +390,6 @@ appr_person_df %>%
   ) %>% 
   ggplot( aes(x = age_bin, y = n, fill = age_bin)) +
   geom_bar(stat = "identity") +
-  #coord_flip() +  
   labs(
     title = "Age Bins",
     x = "Age Bins",
@@ -379,7 +418,16 @@ appr_person_df %>%
 
 ```
 
-Apprentice Status
+**Apprentice Status**
+
+Overall, the apprentice program has a ~50% attrition rate for participants. 
+This may be due to participants needing additional education to help them suceed in the program or due to other major life changes. 
+Within the context of those societal challenges, a high attrition rate is expected. 
+The success rate of the program is ~33% which is impactful for close to ~41,000 Ohioans. 
+Additionally approximately half that number are currently registered in the program.
+The status for Suspended/Reinstated/Transferred individuals is lower than 1% of participants. 
+This means that participants typically are committed to their program, and suspension violations are low. 
+The low Suspended/Reinstated/Transferred rate suggests that many individuals either do not report violations or that they are committed to attempting the program.
 
 ```{r , message=FALSE, warning=FALSE}
 appr_person_df %>%
@@ -400,7 +448,8 @@ appr_person_df %>%
   scale_y_continuous(breaks = seq(0, 150000, by = 5000), 
   labels = scales::comma) +
   theme_minimal() + 
-  scale_fill_discrete(name = "Apprentice Status")
+  scale_fill_discrete(name = "Apprentice Status")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 ```{r , message=FALSE, warning=FALSE}
@@ -420,7 +469,59 @@ appr_person_df %>%
 
 ```
 
-Starting and Ending Wages 
+**start and exit wages** 
+
+```{r}
+
+chi_wage <- appr_person_df[
+  appr_person_df$st_wage_bin %in% c("Below $7.25", "$7.25–$14", "$15–$19", "$20–$29") &
+  appr_person_df$end_wage_bin %in% c("Below $7.25", "$7.25–$14", "$15–$19", "$20–$29"),
+]
+
+wage_table_clean <- wage_table[rowSums(wage_table) > 0, colSums(wage_table) > 0]
+
+chi_wage_results <- chisq.test(wage_table_clean)
+
+```
+
+As observed below, apprentice start wages (in blue) are most frequently in the bins: $7.25-$14, $15-$19, and Below $7.25. 
+Upon completion of the apprentice program, the exit wage  frequencies are right-shifted towards bins:  "$7.25–$14", "$15–$19", "$20–$29", "$30–$39". 
+This right-shift in wage bins supports that after completion of the apprenticeship program, participants generally increased their wages. 
+This is supported by a Chi-Squared test of independence where the null hypothesis was rejected that the frequency of start wages is independent from the frequency of exit wages at the 5% level.
+In short, start wages are related to exit wages, and one aspect of the relationship is participation in the apprenticeship program. 
+
+
+```{r , message=FALSE, warning=FALSE}
+
+start_tab <- table(appr_person_df$st_wage_bin)
+end_tab <- table(appr_person_df$end_wage_bin)
+
+start_df <- as.data.frame(start_tab)
+colnames(start_df) <- c("Wage_Bin", "Count")
+start_df$Type <- "Start Wage"
+
+end_df <- as.data.frame(end_tab)
+colnames(end_df) <- c("Wage_Bin", "Count")
+end_df$Type <- "Exit Wage "
+
+wage_plot_df <- rbind(start_df, end_df)
+
+ggplot(wage_plot_df, aes(x = Wage_Bin, y = Count, fill = Type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Start vs. Exit wage  Distribution",
+    x = "Wage Bin",
+    y = "Count"
+  ) +
+  scale_fill_manual(values = c("Start Wage" = "#1f77b4", "Exit Wage " = "#ff7f0e")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5))
+
+
+wilcox_results <- wilcox.test(paired_df$end_wage_clean, paired_df$st_wage_clean, paired = TRUE)
+ 
+```
+
 
 ```{r , message=FALSE, warning=FALSE}
 
@@ -432,8 +533,8 @@ appr_person_df %>%
   ) %>%
   select(st_wage_bin, Count, Percent) %>%
   kable(
-    col.names = c("Starting Wage", "Count", "Percent"),
-    caption = "Starting Wage Distribution"
+    col.names = c("Start Wage", "Count", "Percent"),
+    caption = "Start Wage Distribution"
   ) %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 
@@ -457,55 +558,50 @@ appr_person_df %>%
 ```
 
 
+The plot below includes boxplots of start and exit wages from the apprentice program after removing outliers. 
+A paired wilcoxon test was performed on the start and exit wage  means, and the null hypothesis was favored that the means were not the same at the 5% level.
+A paired T-test was not selected due to the differences between the two distributions were not normally distributed. (they seemed to resemble a cauchy distribution).
+
 ```{r , message=FALSE, warning=FALSE}
 
-start_tab <- table(appr_person_df$st_wage_bin)
-end_tab <- table(appr_person_df$end_wage_bin)
-
-start_df <- as.data.frame(start_tab)
-colnames(start_df) <- c("Wage_Bin", "Count")
-start_df$Type <- "Starting Wage"
-
-end_df <- as.data.frame(end_tab)
-colnames(end_df) <- c("Wage_Bin", "Count")
-end_df$Type <- "Ending Wage"
-
-wage_plot_df <- rbind(start_df, end_df)
-
-ggplot(wage_plot_df, aes(x = Wage_Bin, y = Count, fill = Type)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(
-    title = "Starting vs. Ending Wage Distribution",
-    x = "Wage Bin",
-    y = "Count"
-  ) +
-  scale_fill_manual(values = c("Starting Wage" = "#1f77b4", "Ending Wage" = "#ff7f0e")) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 0, hjust = 0.5))
-```
-
-Below is are boxplots of starting and ending wages from the apprentice program after removing erronous 
-
-```r
-```{r wage-boxplots, results='asis', message=FALSE, warning=FALSE, error=FALSE, echo=FALSE}
-
-wage_type <- c(rep("Starting", sum(!is.na(appr_person_df$st_wage_clean))),
-               rep("Ending", sum(!is.na(appr_person_df$end_wage_clean))))
+wage_type <- c(rep("Start", sum(!is.na(appr_person_df$st_wage_clean))),
+               rep("Exit", sum(!is.na(appr_person_df$end_wage_clean))))
 
 wages <- c(na.omit(appr_person_df$st_wage_clean),
            na.omit(appr_person_df$end_wage_clean))
 
-box_df <- data.frame(Wage_Type = factor(wage_type, levels = c("Starting", "Ending")),
+box_df <- data.frame(Wage_Type = factor(wage_type, levels = c("Start", "Exit")),
                      Wage = wages)
 
 ggplot(box_df, aes(x = Wage_Type, y = Wage, fill = Wage_Type)) +
   geom_boxplot() +
-  scale_fill_manual(values = c("Starting" = "#1f77b4", "Ending" = "#ff7f0e")) +
-  labs(title = "Boxplot of Starting vs. Ending Wages",
+  scale_fill_manual(values = c("Start" = "#1f77b4", "Exit" = "#ff7f0e")) +
+  labs(title = "Boxplot of Start vs. Exit Wages",
        x = "Wage Type", y = "Wage ($/hr)") +
   theme_minimal()
 
 ```
-Apprentice employer 
 
+The plot below showcases the continous distributions of the Start and Exit Wages.
+In contrast to the wage bins, the exit wage distribution is less right skewed than the Start wage distribution. 
+The Start wage distrutbution is bimodal with the most frequent peak shy of ~$15/hour and the second peak ~$25/hour. 
+This could suggest that new participants interested in the program come from two different ranges of income levels. 
 
+```{R}
+
+wage_long <- paired_df %>%
+  select(st_wage_clean, end_wage_clean) %>%
+  tidyr::pivot_longer(cols = everything(), names_to = "wage_type", values_to = "wage")
+
+ggplot(wage_long, aes(x = wage, fill = wage_type)) +
+  geom_density(alpha = 0.6, color = "white") +
+  scale_fill_manual(values = c("st_wage_clean" = "#1f77b4", "end_wage_clean" = "#ff7f0e"),
+                    labels = c("Start Wage", "Exit Wage")) +   
+  labs(title = "Start vs Exit Wage Distributions",
+       x = "Wage ($/hr)",
+       y = "Density",
+       fill = "Wage Type") +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(0, 40, by = 5))
+
+```
