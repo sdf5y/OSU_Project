@@ -1,0 +1,343 @@
+---
+title: "Task_3_Descriptive_Stats.rmd"
+author: "Sean Franco"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+    number_sections: false
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+---
+
+**Name:**   Task_3_Descriptive_Stats.rmd             
+**Purpose:**  To clean, and explore Ohio's registered apprentice data.      
+**Author:**   Sean Franco       
+**Date Created:** 2025_07_23          
+**Inputs:**   'Apprenticeship Data Dictionary.xlsx'; oh_appr_person.csv; oh_appr_program.csv             
+**Outputs:**  Task_3_Descriptive_Stats.html        
+**Notes:**   3/3 Interview file submission.
+
+```{r include=FALSE}
+knitr::opts_chunk$set(warning = F, message = F)
+options(scientific=T, digits = 3) 
+ 
+```
+
+```{R}
+#install.packages('devtools')
+devtools::install_github("physicsland/ezids")
+#library(devtools)
+
+library(ezids)
+
+data_wd <- "C:/Users/18045/Documents/R/OSU_Project/Data"
+file_wd <- "C:/Users/18045/Documents/R/OSU_Project"
+
+setwd(data_wd)
+#install.packages('pacman')
+library('pacman')
+pacman::p_load(ggplot2, xtable, dplyr,  readxl, gridExtra, xtable, 
+               readr, car, xtable, knitr, kableExtra)
+
+#LoadData----
+appr_dict <- read_excel('Apprenticeship Data Dictionary.xlsx')
+appr_person_df <- read.csv('oh_appr_person.csv')
+appr_prog_df <- read.csv('oh_appr_program.csv')
+
+```
+
+  
+```{R}
+#applying dictionary terms to demographic information
+
+appr_person_df <- appr_person_df %>% 
+      mutate(across(c(Race, Gender, Ethnicity), ~ na_if(., "")))%>%
+      mutate(
+        education = case_when(education == 1 ~ '8th grade or less', 
+                                    education == 1 ~ '8th grade or less',
+                                    education == 2 ~ '9th to 12th grade',
+                                    education == 3 ~ 'GED',
+                                    education == 4 ~ 'High school or greater',
+                                    education == 5 ~ 'Unknown',
+                                    education == 6 ~ 'Post-secondary or technical training' ), 
+                                    
+            Ethnicity = case_when(Ethnicity == 'H' ~ 'Hispanic', 
+                                  Ethnicity == 'N' ~ 'Not Hispanic', 
+                                  Ethnicity == 'NP' ~ 'Not Provided'), 
+                                  
+            apprStatus = case_when(apprStatus == 'CA' ~ 'Cancelled', 
+                                  apprStatus == 'CO' ~ 'Completed', 
+                                  apprStatus == 'RE' ~ 'Registered', 
+                                  apprStatus == 'RI' ~ 'Suspended/Reinstated/Transferred', 
+                                  apprStatus == 'SU' ~ 'Suspended/Reinstated/Transferred', 
+                                  apprStatus == 'TR' ~ 'Suspended/Reinstated/Transferred'), 
+
+            Gender = case_when(Gender == "M"~ 'Male', 
+                               Gender == 'F' ~ 'Female'), 
+
+            Disabled = case_when(Disabled  == "Y"~ 'Yes', 
+                               Disabled  == 'N' ~ 'No', 
+                               Disabled == 'NP' ~ "Not Provided"))
+
+```
+
+```{R}
+#Binning start Ages and flagging erronous ages
+appr_person_df$age_flag <- appr_person_df$AgeAtStart >= 14 & appr_person_df$AgeAtStart <= 90
+
+appr_person_df$start_age_clean <- ifelse(appr_person_df$age_flag, appr_person_df$AgeAtStart, NA)
+
+appr_person_df$age_bin <- cut(appr_person_df$start_age_clean,
+                              breaks = c(14, 20, 30, 40, 50, 60, 70, 90),
+                              right = FALSE,
+                              labels = c("14–19", "20–29", "30–39", "40–49", "50–59", "60–69", "70-90"))
+
+appr_person_df$age_bin <- factor(appr_person_df$age_bin, levels = c("14–19", "20–29", "30–39", "40–49", "50–59", "60–69", "70-90"),
+  ordered = TRUE)
+
+```
+
+
+```{R}
+#Binning starting wages 
+
+appr_person_df$st_wage_flag <- appr_person_df$startingWage >= 7.25 & appr_person_df$startingWage <= 40
+
+appr_person_df$st_wage_clean <- ifelse(appr_person_df$st_wage_flag, appr_person_df$startingWage, NA)
+
+appr_person_df$st_wage_bin <- cut(appr_person_df$startingWage, 
+                              breaks = c(-Inf, 7.25, 15, 20, 30, 40, Inf), 
+                              right = FALSE, 
+                              labels = c("Below 7.25", "7.25–14", "15–19", "20–29", "30–39", "40+"))                      
+
+appr_person_df$st_wage_bin <- factor(appr_person_df$st_wage_bin, levels = c("Below 7.25", "7.25–14", "15–19", "20–29", "30–39", "40+"),
+  ordered = TRUE)
+
+#Binning ending wages 
+
+appr_person_df$end_wage_flag <- appr_person_df$exitWage >= 7.25 & appr_person_df$exitWage <= 40
+
+appr_person_df$end_wage_clean <- ifelse(appr_person_df$end_wage_flag, appr_person_df$exitWage, NA)
+
+appr_person_df$end_wage_bin <- cut(appr_person_df$exitWage,
+                               breaks = c(-Inf, 7.25, 15, 20, 30, 40, Inf),
+                               right = FALSE,
+                               labels = c("Below 7.25", "7.25–14", "15–19", "20–29", "30–39", "40+"))
+
+appr_person_df$end_wage_bin <- factor(appr_person_df$end_wage_bin, levels = c("Below 7.25", "7.25–14", "15–19", "20–29", "30–39", "40+"),
+  ordered = TRUE)
+
+```
+
+
+```{R}
+
+#tables of industry
+table(appr_person_df$occupationID)
+test <- merge(appr_person_df, appr_prog_df, by = 'psId')
+table(test$NAICSCode)
+
+```
+
+Tables of apprentice participation demographics including Ethnicity, Veteran Status, Gender Status, Race, Disabled Status, Education, and Program Age Start Bins.
+
+```{R}
+
+appr_person_df %>%
+  count(Ethnicity) %>%
+  arrange(desc(n)) %>% 
+  mutate(
+    Count = scales::comma(n),
+    Percent = scales::percent(n / sum(n))
+  ) %>%
+  select(Ethnicity, Count, Percent) %>%
+  kable(
+    col.names = c("Ethnicity", "Count", "Percent"),
+    caption = "Ethnicity Distribution"
+  ) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+
+```
+
+
+```{R}
+appr_person_df %>%
+  count(VetStatInd) %>%
+  arrange(desc(n)) %>% 
+  mutate(Count = scales::comma(n),
+    Percent = scales::percent(n / sum(n))) %>% select(VetStatInd, Count, Percent) %>%
+  kable(col.names = c("Veteran Status", "Count", "Percent"), caption = "Veteran Status Distribution") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+```{R}
+appr_person_df %>%
+  count(Gender) %>%
+  arrange(desc(n)) %>% 
+  mutate(Count = scales::comma(n),
+    Percent = scales::percent(n / sum(n))) %>% select(Gender, Count, Percent) %>%
+  kable(col.names = c("Gender Status", "Count", "Percent"), caption = "Gender Status Distribution") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+```{R}
+appr_person_df %>%
+  count(Race) %>%
+  arrange(desc(n)) %>% 
+  mutate(Count = scales::comma(n),
+    Percent = scales::percent(n / sum(n))) %>% select(Race, Count, Percent) %>%
+  kable(col.names = c("Race Status", "Count", "Percent"), caption = "Race Status Distribution") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+```{R}
+appr_person_df %>%
+  count(Disabled) %>%
+  arrange(desc(n)) %>% 
+  mutate(Count = scales::comma(n),
+    Percent = scales::percent(n / sum(n))) %>% select(Disabled, Count, Percent) %>%
+  kable(col.names = c("Disabled Status", "Count", "Percent"), caption = "Disabled Status Distribution") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+```{R}
+appr_person_df %>%
+  count(education) %>%
+  arrange(desc(n)) %>% 
+  mutate(Count = scales::comma(n),
+    Percent = scales::percent(n / sum(n))) %>% select(education, Count, Percent) %>%
+  kable(col.names = c("Education Status", "Count", "Percent"), caption = "Education Status Distribution") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+
+```{R}
+
+appr_person_df %>%
+  count(age_bin) %>%
+  mutate(
+    Count = scales::comma(n),
+    Percent = scales::percent(n / sum(n))
+  ) %>%
+  select(age_bin, Count, Percent) %>%
+  kable(
+    col.names = c("Age Bins At Start of Program", "Count", "Percent"),
+    caption = "Age Bins At Start of Program  Distribution"
+  ) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+
+```
+
+
+```{R}
+
+appr_person_df %>%
+  count(apprStatus) %>%
+  mutate(
+    Count = scales::comma(n),
+    Percent = scales::percent(n / sum(n))
+  ) %>%
+  select(apprStatus, Count, Percent) %>%
+  kable(
+    col.names = c("Program Status", "Count", "Percent"),
+    caption = "Program Status of Program  Distribution"
+  ) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+
+```
+
+Starting and Ending Wages 
+
+```{R}
+
+appr_person_df %>%
+  count(st_wage_bin) %>%
+  mutate(
+    Count = scales::comma(n),
+    Percent = scales::percent(n / sum(n))
+  ) %>%
+  select(st_wage_bin, Count, Percent) %>%
+  kable(
+    col.names = c("Starting Wage", "Count", "Percent"),
+    caption = "Starting Wage Distribution"
+  ) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+
+```
+
+```{R}
+
+appr_person_df %>%
+  count(end_wage_bin) %>%
+  mutate(
+    Count = scales::comma(n),
+    Percent = scales::percent(n / sum(n))
+  ) %>%
+  select(end_wage_bin, Count, Percent) %>%
+  kable(
+    col.names = c("Exit Wage", "Count", "Percent"),
+    caption = "Exit Wage Distribution"
+  ) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+
+```
+
+
+```{R}
+
+start_tab <- table(appr_person_df$st_wage_bin)
+end_tab <- table(appr_person_df$end_wage_bin)
+
+start_df <- as.data.frame(start_tab)
+colnames(start_df) <- c("Wage_Bin", "Count")
+start_df$Type <- "Starting Wage"
+
+end_df <- as.data.frame(end_tab)
+colnames(end_df) <- c("Wage_Bin", "Count")
+end_df$Type <- "Ending Wage"
+
+wage_plot_df <- rbind(start_df, end_df)
+
+ggplot(wage_plot_df, aes(x = Wage_Bin, y = Count, fill = Type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Starting vs. Ending Wage Distribution",
+    x = "Wage Bin",
+    y = "Count"
+  ) +
+  scale_fill_manual(values = c("Starting Wage" = "#1f77b4", "Ending Wage" = "#ff7f0e")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5))
+```
+
+Below is are boxplots of starting and ending wages from the apprentice program after removing erronous 
+```{R}
+wage_type <- c(rep("Starting", sum(!is.na(appr_person_df$st_wage_clean))),
+               rep("Ending", sum(!is.na(appr_person_df$end_wage_clean))))
+
+wages <- c(na.omit(appr_person_df$st_wage_clean),
+           na.omit(appr_person_df$end_wage_clean))
+
+box_df <- data.frame("Wage_Type" = wage_type, "Wage" = wages)
+
+ggplot(box_df, aes(x = Wage_Type, y = Wage, fill = Wage_Type)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("Starting" = "#1f77b4", "Ending" = "#ff7f0e")) +
+  labs(title = "Boxplot of Starting vs. Ending Wages",
+       x = "Wage Type", y = "Wage ($/hr)") +
+  theme_minimal()
+
+```
+
+
+```{R}
+setwd(file_wd)
+rmarkdown::pandoc_available()
+rmarkdown::render("Task_3_Descriptive_Stats.Rmd")
+
+```
+Apprentice employer 
+
+
