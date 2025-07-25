@@ -11,7 +11,7 @@
 
 <meta name="author" content="Sean Franco" />
 
-<meta name="date" content="2025-07-24" />
+<meta name="date" content="2025-07-25" />
 
 <title>Task_3_Descriptive_Stats.rmd</title>
 
@@ -1793,7 +1793,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">Task_3_Descriptive_Stats.rmd</h1>
 <h4 class="author">Sean Franco</h4>
-<h4 class="date">2025-07-24</h4>
+<h4 class="date">2025-07-25</h4>
 
 </div>
 
@@ -1803,8 +1803,8 @@ border-radius: 0px;
 apprentice data.<br />
 <strong>Author:</strong> Sean Franco<br />
 <strong>Date Created:</strong> 2025_07_23<br />
-<strong>Inputs:</strong> ‘Apprenticeship Data Dictionary.xlsx’;
-oh_appr_person.csv; oh_appr_program.csv<br />
+<strong>Inputs:</strong> 4 Files: ‘Apprenticeship Data Dictionary.xlsx’;
+oh_appr_person.csv; oh_appr_program.csv; 2-6 digit_2022_Codes.xlsx<br />
 <strong>Outputs:</strong> Task_3_Descriptive_Stats.html<br />
 <strong>Notes:</strong> 3/3 Interview file submission.</p>
 <p>The code chunk below loads the 2 apprentice project datasets, and
@@ -1825,7 +1825,7 @@ pacman::p_load(ggplot2, xtable, dplyr,  readxl, gridExtra, xtable,
                readr, car, xtable, knitr, kableExtra, forcats)
 
 #LoadData----
-appr_dict &lt;- read_excel(file.path(data_wd, &#39;Apprenticeship Data Dictionary.xlsx&#39;))
+#appr_dict &lt;- read_excel(file.path(data_wd, &#39;Apprenticeship Data Dictionary.xlsx&#39;))
 appr_person_df &lt;- read.csv(file.path(data_wd, &#39;oh_appr_person.csv&#39;))
 appr_prog_df &lt;- read.csv(file.path(data_wd, &#39;oh_appr_program.csv&#39;))
 naics_df &lt;- read_excel(file.path(data_wd, &quot;2-6 digit_2022_Codes.xlsx&quot;)) #download NAICS codes here: https://www.census.gov/naics/?48967 selecting the 2-6 digit 2022 Code File [XLSX, 81KB]
@@ -2107,11 +2107,11 @@ Not Provided
 </tbody>
 </table>
 <p><strong>Gender</strong></p>
-<p>93% of participants indicated selection of the male gender, and 7% of
-participants indicated selection of the female gender. The apprentice
-program seems to have a higher participation of males than females,
-which may be reinforced by the type of roles offered, and lack of
-support systems for female and other marginalized genders.</p>
+<p>93% of participants indicated a male gender, and 7% of participants
+indicated a female gender. The apprentice program seems to have a higher
+participation of males than females, which may be reinforced by the type
+of roles offered, and lack of support systems for female and other
+marginalized genders.</p>
 <pre class="r"><code>appr_person_df %&gt;%
   count(Gender) %&gt;%
   arrange(desc(n)) %&gt;% 
@@ -2842,8 +2842,7 @@ ggplot(wage_plot_df, aes(x = Wage_Bin, y = Count, fill = Type)) +
   select(psId, st_wage_clean, end_wage_clean)
 
 wilcox_results &lt;- wilcox.test(paired_df$end_wage_clean, paired_df$st_wage_clean, paired = TRUE)
-median(paired_df$end_wage_clean - paired_df$st_wage_clean)</code></pre>
-<pre><code>## [1] 1.63</code></pre>
+median_result &lt;- median(paired_df$end_wage_clean - paired_df$st_wage_clean)</code></pre>
 <pre class="r"><code>appr_person_df %&gt;%
   count(st_wage_bin) %&gt;%
   mutate(
@@ -3065,10 +3064,11 @@ NA
 <p>The plot below includes boxplots of start and exit wages from the
 apprentice program after removing outliers. A paired wilcoxon test was
 performed on the start and exit wage means, and the null hypothesis was
-favored that the means were not the same at the 5% level. A paired
-T-test was not selected due to the differences between the two
-distributions were not normally distributed. (they seemed to resemble a
-cauchy distribution).</p>
+not favored that the means were not the same at the 5% level.
+Additionally, the starting and exit wage medians differed by a factor of
+. A paired T-test was not selected due to not meeting normally
+distributed residual (they seemed to resemble a cauchy
+distribution).</p>
 <pre class="r"><code>wage_type &lt;- c(rep(&quot;Start&quot;, sum(!is.na(appr_person_df$st_wage_clean))),
                rep(&quot;Exit&quot;, sum(!is.na(appr_person_df$end_wage_clean))))
 
@@ -3091,7 +3091,9 @@ is less right skewed than the Start wage distribution. The Start wage
 distribution is bimodal with the most frequent peak shy of ~$15/hour and
 the second peak ~$25/hour. This could suggest that new participants
 interested in the program come from two different ranges of income
-levels.</p>
+levels. The exit wage distribution is also effected by the apprentices
+who were not able to complete the program, which may account for why the
+distribution is centered around the $10-$15 wage.</p>
 <pre class="r"><code>wage_long &lt;- paired_df %&gt;%
   select(st_wage_clean, end_wage_clean) %&gt;%
   tidyr::pivot_longer(cols = everything(), names_to = &quot;wage_type&quot;, values_to = &quot;wage&quot;)
@@ -3491,6 +3493,206 @@ Finance and Insurance
 </tr>
 </tbody>
 </table>
+<p><strong>Location</strong></p>
+<p>Overall the program favors counties in close proximity to cities. See
+the table below of the top 10 counties that offer an apprenticeship
+program. This is not surprising since there are more economic
+opportunities near cities and higher populations for the labor force.
+This also suggests that the program is oriented to serving apprentices
+from metro areas rather than rural areas.</p>
+<pre class="r"><code>program_df %&gt;% 
+  count(County, progCity) %&gt;%
+  mutate(
+    Count = scales::comma(n),
+    Percent = scales::percent(n / sum(n))
+  ) %&gt;%
+  arrange(desc(n)) %&gt;% 
+  slice_max(n, n = 10) %&gt;%
+  select(County, progCity, Count, Percent) %&gt;%
+  kable(
+    col.names = c(&quot;Ohio County&quot;, &quot;City/Metro Area&quot;, &quot;Count&quot;, &quot;Percent&quot;),
+    caption = &quot;Distribution of Apprentices by County and Nearest Metro Area&quot;
+  ) %&gt;%  
+  kable_styling(bootstrap_options = c(&quot;striped&quot;, &quot;hover&quot;, &quot;condensed&quot;))</code></pre>
+<table class="table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<caption>
+Distribution of Apprentices by County and Nearest Metro Area
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Ohio County
+</th>
+<th style="text-align:left;">
+City/Metro Area
+</th>
+<th style="text-align:left;">
+Count
+</th>
+<th style="text-align:left;">
+Percent
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Franklin County
+</td>
+<td style="text-align:left;">
+COLUMBUS
+</td>
+<td style="text-align:left;">
+42,577
+</td>
+<td style="text-align:left;">
+36.52609%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Hamilton County
+</td>
+<td style="text-align:left;">
+CINCINNATI
+</td>
+<td style="text-align:left;">
+10,759
+</td>
+<td style="text-align:left;">
+9.22996%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Summit County
+</td>
+<td style="text-align:left;">
+RICHFIELD
+</td>
+<td style="text-align:left;">
+6,698
+</td>
+<td style="text-align:left;">
+5.74610%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Cuyahoga County
+</td>
+<td style="text-align:left;">
+CLEVELAND
+</td>
+<td style="text-align:left;">
+4,974
+</td>
+<td style="text-align:left;">
+4.26711%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Wood County
+</td>
+<td style="text-align:left;">
+ROSSFORD
+</td>
+<td style="text-align:left;">
+3,910
+</td>
+<td style="text-align:left;">
+3.35432%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Franklin County
+</td>
+<td style="text-align:left;">
+WESTERVILLE
+</td>
+<td style="text-align:left;">
+3,804
+</td>
+<td style="text-align:left;">
+3.26339%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Montgomery County
+</td>
+<td style="text-align:left;">
+DAYTON
+</td>
+<td style="text-align:left;">
+3,589
+</td>
+<td style="text-align:left;">
+3.07894%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Butler County
+</td>
+<td style="text-align:left;">
+MONROE
+</td>
+<td style="text-align:left;">
+3,103
+</td>
+<td style="text-align:left;">
+2.66201%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Lucas County
+</td>
+<td style="text-align:left;">
+TOLEDO
+</td>
+<td style="text-align:left;">
+2,878
+</td>
+<td style="text-align:left;">
+2.46899%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Warren County
+</td>
+<td style="text-align:left;">
+SPRINGBORO
+</td>
+<td style="text-align:left;">
+2,251
+</td>
+<td style="text-align:left;">
+1.93109%
+</td>
+</tr>
+</tbody>
+</table>
+<p>Next Steps would be to map county level information to assess how
+individuals in their county of residence, and their county of employment
+interact and are supported in the program. This geographic information
+would help identify areas that have strong pipelines of participants in
+the apprentice program. Other steps include learning more on why
+applicants leave the apprenticeship program as noted in their free
+response field. Since this field is free response, I suggest some light
+natural language processing (NLP) analysis to be performed such as token
+analysis of keywords. This would also elicit an insider’s view of the
+program in a structured way. As for the program itself, marketing
+strategies could be implemented to expand the demographics of
+participants, and on the employer-side additional variety of job roles
+would offer more incentives for participants. Employers would likely
+also need an incentive to offer a program. Also monitoring of the
+program is recommended as well as developing structured resources for
+apprentices and employers for mutual success.</p>
 
 
 

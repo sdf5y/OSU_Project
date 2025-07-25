@@ -15,7 +15,7 @@ output:
 **Purpose:**  To clean, and explore Ohio's registered apprentice data.      
 **Author:**   Sean Franco       
 **Date Created:** 2025_07_23          
-**Inputs:**   'Apprenticeship Data Dictionary.xlsx'; oh_appr_person.csv; oh_appr_program.csv             
+**Inputs:**   4 Files: 'Apprenticeship Data Dictionary.xlsx'; oh_appr_person.csv; oh_appr_program.csv; 2-6 digit_2022_Codes.xlsx             
 **Outputs:**  Task_3_Descriptive_Stats.html        
 **Notes:**   3/3 Interview file submission.
 
@@ -47,7 +47,7 @@ pacman::p_load(ggplot2, xtable, dplyr,  readxl, gridExtra, xtable,
                readr, car, xtable, knitr, kableExtra, forcats)
 
 #LoadData----
-appr_dict <- read_excel(file.path(data_wd, 'Apprenticeship Data Dictionary.xlsx'))
+#appr_dict <- read_excel(file.path(data_wd, 'Apprenticeship Data Dictionary.xlsx'))
 appr_person_df <- read.csv(file.path(data_wd, 'oh_appr_person.csv'))
 appr_prog_df <- read.csv(file.path(data_wd, 'oh_appr_program.csv'))
 naics_df <- read_excel(file.path(data_wd, "2-6 digit_2022_Codes.xlsx")) #download NAICS codes here: https://www.census.gov/naics/?48967 selecting the 2-6 digit 2022 Code File [XLSX, 81KB]
@@ -235,7 +235,7 @@ appr_person_df %>%
 
 **Gender**
 
-93% of participants indicated selection of the male gender, and 7% of participants indicated selection of the female gender. 
+93% of participants indicated a male gender, and 7% of participants indicated a female gender. 
 The apprentice program seems to have a higher participation of males than females, which may be reinforced by the type of roles offered, and lack of support systems for female and other marginalized genders. 
 
 ```{r , message=FALSE, warning=FALSE}
@@ -529,7 +529,7 @@ paired_df <- appr_person_df %>%
   select(psId, st_wage_clean, end_wage_clean)
 
 wilcox_results <- wilcox.test(paired_df$end_wage_clean, paired_df$st_wage_clean, paired = TRUE)
-median(paired_df$end_wage_clean - paired_df$st_wage_clean)
+median_result <- median(paired_df$end_wage_clean - paired_df$st_wage_clean)
 ```
 
 
@@ -568,8 +568,9 @@ appr_person_df %>%
 ```
 
 The plot below includes boxplots of start and exit wages from the apprentice program after removing outliers. 
-A paired wilcoxon test was performed on the start and exit wage  means, and the null hypothesis was favored that the means were not the same at the 5% level.
-A paired T-test was not selected due to the differences between the two distributions were not normally distributed. (they seemed to resemble a cauchy distribution).
+A paired wilcoxon test was performed on the start and exit wage means, and the null hypothesis was not favored that the means were not the same at the 5% level.
+Additionally, the starting and exit wage medians differed by a factor of `r print(median_result)`.
+A paired T-test was not selected due to not meeting normally distributed residual (they seemed to resemble a cauchy distribution).
 
 ```{r , message=FALSE, warning=FALSE}
 
@@ -595,6 +596,7 @@ The plot below showcases the continuous distributions of the Start and Exit Wage
 In contrast to the wage bins, the exit wage distribution is less right skewed than the Start wage distribution. 
 The Start wage distribution is bimodal with the most frequent peak shy of ~$15/hour and the second peak ~$25/hour. 
 This could suggest that new participants interested in the program come from two different ranges of income levels. 
+The exit wage distribution is also effected by the apprentices who were not able to complete the program, which may account for why the distribution is centered around the $10-$15 wage.
 
 ```{R}
 
@@ -673,3 +675,38 @@ program_df %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 
 ```
+
+**Location**
+
+Overall the program favors counties in close proximity to cities. 
+See the table below of the top 10 counties that offer an apprenticeship program. 
+This is not surprising since there are more economic opportunities near cities and higher populations for the labor force. 
+This also suggests that the program is oriented to serving apprentices from metro areas rather than rural areas.
+
+```{r}
+
+program_df %>% 
+  count(County, progCity) %>%
+  mutate(
+    Count = scales::comma(n),
+    Percent = scales::percent(n / sum(n))
+  ) %>%
+  arrange(desc(n)) %>% 
+  slice_max(n, n = 10) %>%
+  select(County, progCity, Count, Percent) %>%
+  kable(
+    col.names = c("Ohio County", "City/Metro Area", "Count", "Percent"),
+    caption = "Distribution of Apprentices by County and Nearest Metro Area"
+  ) %>%  
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+
+```
+
+Next Steps would be to map county level information to assess how individuals in their county of residence, and their county of employment interact and are supported in the program. 
+This geographic information would help identify areas that have strong pipelines of participants in the apprentice program. 
+Other steps include learning more on why applicants leave the apprenticeship program as noted in their free response field. 
+Since this field is free response, I suggest some light natural language processing (NLP) analysis to be performed such as token analysis of keywords.
+This would also elicit an insider's view of the program in a structured way. 
+As for the program itself, marketing strategies could be implemented to expand the demographics of participants, and on the employer-side additional variety of job roles would offer more incentives for participants.
+Employers would likely also need an incentive to offer a program. 
+Also monitoring of the program is recommended as well as developing structured resources for apprentices and employers for mutual success.
