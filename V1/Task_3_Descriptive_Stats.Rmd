@@ -44,13 +44,15 @@ setwd(file_wd)
 #install.packages('pacman')
 library('pacman')
 pacman::p_load(ggplot2, xtable, dplyr,  readxl, gridExtra, xtable, 
-               readr, car, xtable, knitr, kableExtra)
+               readr, car, xtable, knitr, kableExtra, forcats)
 
 #LoadData----
 appr_dict <- read_excel(file.path(data_wd, 'Apprenticeship Data Dictionary.xlsx'))
 appr_person_df <- read.csv(file.path(data_wd, 'oh_appr_person.csv'))
 appr_prog_df <- read.csv(file.path(data_wd, 'oh_appr_program.csv'))
-
+naics_df <- read_excel(file.path(data_wd, "2-6 digit_2022_Codes.xlsx")) #download NAICS codes here: https://www.census.gov/naics/?48967 selecting the 2-6 digit 2022 Code File [XLSX, 81KB]
+naics_df <- naics_df[-1, -c(1, 4,5)] #remove first row, and 1, 4, 5 columns
+names(naics_df) <- trimws(names(naics_df)) 
 ```
 
 This code chunk applies demographic levels for factor variables such as Race, Gender, Ethnicity, Veteran Status, Disabled Status, and Education level. 
@@ -97,7 +99,7 @@ appr_person_df <- appr_person_df %>%
 This code chunk caps the Age at Start of apprenticeship to an age range inclusive from age 14 to age 90. This was performed to accurately record respondents who may enter the workforce as a teenager. 
 The lower start age floor of 14 was included to identify participants who sought the apprenticeship program before legal working age or representative of other arrangements such as but not limited to emancipation. 
 The upper start age cap of 90 was included to account for participants who sought the apprenticeship program later in life. 
-start ages reported outside of this range were flagged and not included in this study because they were low in count, and have an increased chance they were erronous.
+start ages reported outside of this range were flagged and not included in this study because they were low in count, and have an increased chance they were erroneous.
 
 ```{r , message=FALSE, warning=FALSE}
 #Binning start Ages and flagging erronous ages
@@ -160,6 +162,7 @@ Presented below are tables and plots of the demographic information of the appre
 66% of apprentice participants reported Not Hispanic ethnicity, 31% did not provide a response, and 3% reported Hispanic ethnicity. 
 This suggests that the apprentice program may need additional marketing towards Hispanics to enter the program. 
 Additionally self-reporting ethnicity may be tied to caution which could explain the larger share of the "Not Provided" response. 
+
 ```{r , message=FALSE, warning=FALSE}
 appr_person_df %>%
   count(Ethnicity) %>%
@@ -268,7 +271,7 @@ appr_person_df %>%
 
 **Race** 
 
-Around 79% of participants identified as white, 14% of participants identified as black or african-american, and ~6% total were a mix of blank or "do not wish to answer" responses.
+Around 79% of participants identified as white, 14% of participants identified as black or African-American, and ~6% total were a mix of blank or "do not wish to answer" responses.
 
 ```{r , message=FALSE, warning=FALSE}
 appr_person_df %>%
@@ -421,7 +424,7 @@ appr_person_df %>%
 **Apprentice Status**
 
 Overall, the apprentice program has a ~50% attrition rate for participants. 
-This may be due to participants needing additional education to help them suceed in the program or due to other major life changes. 
+This may be due to participants needing additional education to help them succeed in the program or due to other major life changes. 
 Within the context of those societal challenges, a high attrition rate is expected. 
 The success rate of the program is ~33% which is impactful for close to ~41,000 Ohioans. 
 Additionally approximately half that number are currently registered in the program.
@@ -430,6 +433,7 @@ This means that participants typically are committed to their program, and suspe
 The low Suspended/Reinstated/Transferred rate suggests that many individuals either do not report violations or that they are committed to attempting the program.
 
 ```{r , message=FALSE, warning=FALSE}
+
 appr_person_df %>%
   count(apprStatus) %>%
   arrange(desc(n)) %>% 
@@ -450,26 +454,27 @@ appr_person_df %>%
   theme_minimal() + 
   scale_fill_discrete(name = "Apprentice Status")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 ```
 
 ```{r , message=FALSE, warning=FALSE}
 
 appr_person_df %>%
-  count(apprStatus) %>%
-  mutate(
-    Count = scales::comma(n),
-    Percent = scales::percent(n / sum(n))
-  ) %>%
-  select(apprStatus, Count, Percent) %>%
-  kable(
-    col.names = c("Program Status", "Count", "Percent"),
-    caption = "Program Status of Program  Distribution"
-  ) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+count(apprStatus) %>%
+mutate(
+Count = scales::comma(n),
+Percent = scales::percent(n / sum(n))
+) %>%
+select(apprStatus, Count, Percent) %>%
+kable(
+col.names = c("Program Status", "Count", "Percent"),
+caption = "Program Status of Program  Distribution"
+) %>%
+kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 
 ```
 
-**start and exit wages** 
+**Start and Exit Wages** 
 
 ```{r}
 
@@ -477,6 +482,8 @@ chi_wage <- appr_person_df[
   appr_person_df$st_wage_bin %in% c("Below $7.25", "$7.25–$14", "$15–$19", "$20–$29") &
   appr_person_df$end_wage_bin %in% c("Below $7.25", "$7.25–$14", "$15–$19", "$20–$29"),
 ]
+
+wage_table <- table(chi_wage$st_wage_bin, chi_wage$end_wage_bin)
 
 wage_table_clean <- wage_table[rowSums(wage_table) > 0, colSums(wage_table) > 0]
 
@@ -517,9 +524,12 @@ ggplot(wage_plot_df, aes(x = Wage_Bin, y = Count, fill = Type)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5))
 
+paired_df <- appr_person_df %>%
+  filter(!is.na(st_wage_clean), !is.na(end_wage_clean)) %>%
+  select(psId, st_wage_clean, end_wage_clean)
 
 wilcox_results <- wilcox.test(paired_df$end_wage_clean, paired_df$st_wage_clean, paired = TRUE)
- 
+median(paired_df$end_wage_clean - paired_df$st_wage_clean)
 ```
 
 
@@ -557,7 +567,6 @@ appr_person_df %>%
 
 ```
 
-
 The plot below includes boxplots of start and exit wages from the apprentice program after removing outliers. 
 A paired wilcoxon test was performed on the start and exit wage  means, and the null hypothesis was favored that the means were not the same at the 5% level.
 A paired T-test was not selected due to the differences between the two distributions were not normally distributed. (they seemed to resemble a cauchy distribution).
@@ -582,9 +591,9 @@ ggplot(box_df, aes(x = Wage_Type, y = Wage, fill = Wage_Type)) +
 
 ```
 
-The plot below showcases the continous distributions of the Start and Exit Wages.
+The plot below showcases the continuous distributions of the Start and Exit Wages.
 In contrast to the wage bins, the exit wage distribution is less right skewed than the Start wage distribution. 
-The Start wage distrutbution is bimodal with the most frequent peak shy of ~$15/hour and the second peak ~$25/hour. 
+The Start wage distribution is bimodal with the most frequent peak shy of ~$15/hour and the second peak ~$25/hour. 
 This could suggest that new participants interested in the program come from two different ranges of income levels. 
 
 ```{R}
@@ -603,5 +612,64 @@ ggplot(wage_long, aes(x = wage, fill = wage_type)) +
        fill = "Wage Type") +
   theme_minimal() +
   scale_x_continuous(breaks = seq(0, 40, by = 5))
+
+```
+
+**Program Types**
+
+```{r}
+
+appr_prog_df <- subset(appr_prog_df, !is.na(NAICSCode))
+
+combo_df <- merge(appr_person_df, appr_prog_df, on = 'psId')
+
+combo_df$short_naics <- stringr::str_extract(combo_df$NAICSCode, "^.{2}")
+
+program_df <- combo_df %>%
+  left_join(naics_df, by = c("short_naics" = '2022 NAICS US   Code'))
+
+program_df <- program_df %>%
+  mutate(`2022 NAICS US Title` = case_when(short_naics %in% 31:33 ~ "Manufacturing", 
+                                           short_naics %in% 44:45 ~ "Retail Trade",
+                                           short_naics %in% 48:49 ~ "Transportation and Warehousing",
+                                          TRUE ~ `2022 NAICS US Title`))
+
+ggplot(program_df, aes(x = fct_infreq(as.factor(short_naics)), fill = apprStatus)) +
+geom_bar(position = "stack") +
+labs(
+  title = "Apprentice Status by NAICS Code",
+  x = "NAICS Sector (2-digit)",
+  y = "Count",
+  fill = "Apprentice Status"
+) +
+coord_flip()+
+theme_minimal() +
+scale_y_continuous(breaks = seq(0, 300000, by = 10000), labels = scales::comma) +
+theme(axis.text.x = element_text(angle = 0, hjust = 1),
+  axis.text.y = element_text(size = 8))
+
+```
+
+Overall, most apprentices are geared for select sectors such as Construction (NAICS 23) with over 61% of all apprentices. 
+Public Administration (NAICS 92) follows with nearly 23%, and Manufacturing (NAICS 31–33) with ~8.6%. 
+Sectors like Education, Utilities, and Health Care each have less than 5% of applicants. So the program is really construction, and public administration heavy.
+Construction is a job role typically associated with male gender roles, so seeing disproportionate apprentices in this industry and the program as a whole showcases that 
+Female labor participation is largely not represented in the apprenticeship program.
+
+```{r}
+
+program_df %>% 
+  count(short_naics, `2022 NAICS US Title`) %>%
+  mutate(
+    Count = scales::comma(n),
+    Percent = scales::percent(n / sum(n))
+  ) %>%
+  arrange(desc(n)) %>% 
+  select(`2022 NAICS US Title`, short_naics, Count, Percent) %>%
+  kable(
+    col.names = c('2022 NAICS Title', "NAICS Code (3-digit)", "Count", "Percent"),
+    caption = "Distribution of Apprentices by NAICS Code"
+  ) %>%  
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 
 ```
